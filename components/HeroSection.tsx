@@ -122,8 +122,9 @@ export default function HeroSection() {
         <ThreeScene mousePos={smoothMouse} />
       </div>
 
-      {/* Content */}
+      {/* Content — kept to left half so text never overlaps the face on the right */}
       <div className="relative z-30 w-full max-w-6xl mx-auto px-6 md:px-12 flex flex-col items-start">
+      <div className="w-full md:max-w-[48%] flex flex-col items-start">
         {/* Eyebrow */}
         <p
           className="fade-up text-[#E8923C] text-sm md:text-base font-mono tracking-[0.25em] uppercase mb-6 font-medium"
@@ -192,6 +193,7 @@ export default function HeroSection() {
             </div>
           ))}
         </div>
+      </div>
       </div>
 
       {/* Mute / unmute toggle */}
