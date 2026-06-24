@@ -43,8 +43,15 @@ export default function HeroSection() {
   const mousePos = useRef({ x: 0, y: 0 });
   const [smoothMouse, setSmoothMouse] = useState({ x: 0, y: 0 });
   const [glowPos, setGlowPos] = useState({ x: 50, y: 50 });
+  const [muted, setMuted] = useState(true);
   const rafRef = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  const toggleMute = useCallback(() => {
+    if (!videoRef.current) return;
+    videoRef.current.muted = !videoRef.current.muted;
+    setMuted(videoRef.current.muted);
+  }, []);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     const x = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -88,7 +95,7 @@ export default function HeroSection() {
         muted
         loop
         playsInline
-        preload="metadata"
+        preload="auto"
       >
         <source src="/video/hero.webm" type="video/webm" />
         <source src="/video/hero.mp4" type="video/mp4" />
@@ -186,6 +193,31 @@ export default function HeroSection() {
           ))}
         </div>
       </div>
+
+      {/* Mute / unmute toggle */}
+      <button
+        onClick={toggleMute}
+        aria-label={muted ? "Unmute video" : "Mute video"}
+        className="absolute bottom-8 right-6 md:right-10 z-30 flex items-center gap-2 px-3 py-2 rounded-full border border-[rgba(232,146,60,0.3)] bg-[rgba(13,13,13,0.5)] text-[#9A8F83] hover:text-[#E8923C] hover:border-[#E8923C] transition-all duration-200 backdrop-blur-sm"
+      >
+        {muted ? (
+          /* Speaker muted */
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+          </svg>
+        ) : (
+          /* Speaker on */
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0l-4.243-4.243M12 18l4.243-4.243M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+          </svg>
+        )}
+        <span className="text-[10px] font-mono tracking-widest uppercase">
+          {muted ? "Sound Off" : "Sound On"}
+        </span>
+      </button>
 
       {/* Scroll indicator */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2">
