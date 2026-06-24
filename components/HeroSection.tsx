@@ -94,7 +94,7 @@ export default function HeroSection() {
         <source src="/video/hero.mp4" type="video/mp4" />
       </video>
       {/* Fallback gradient (shown if video fails to load) */}
-      <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#1a1008] via-[#0D0D0D] to-[#0a0a14] -z-10">
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#1a1008] via-[#0D0D0D] to-[#0a0a14]">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_30%_60%,rgba(232,146,60,0.08)_0%,transparent_70%)]" />
       </div>
 
