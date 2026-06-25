@@ -14,6 +14,10 @@ const words = headline.split(" ");
 const subtext =
   "7+ years across finance, telecom, and insurance — Java, Spring Boot, AWS, and API architecture for systems handling millions in loan servicing volume.";
 
+const SOUND_PREFERENCE_KEY = "ajay-portfolio-sound-enabled";
+const SOUND_TOGGLE_EVENT = "portfolio-toggle-sound";
+const SOUND_STATE_EVENT = "portfolio-sound-state";
+
 const stats = [
   { value: "7+", label: "Years Experience" },
   { value: "4", label: "Enterprise Domains" },
@@ -43,15 +47,47 @@ export default function HeroSection() {
   const mousePos = useRef({ x: 0, y: 0 });
   const [smoothMouse, setSmoothMouse] = useState({ x: 0, y: 0 });
   const [glowPos, setGlowPos] = useState({ x: 50, y: 50 });
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
+  const [soundBlocked, setSoundBlocked] = useState(false);
   const rafRef = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  const updateMutedState = useCallback((nextMuted: boolean) => {
+    setMuted(nextMuted);
+    window.dispatchEvent(
+      new CustomEvent(SOUND_STATE_EVENT, {
+        detail: { muted: nextMuted },
+      })
+    );
+  }, []);
+
   const toggleMute = useCallback(() => {
     if (!videoRef.current) return;
-    videoRef.current.muted = !videoRef.current.muted;
-    setMuted(videoRef.current.muted);
-  }, []);
+    const nextMuted = !videoRef.current.muted;
+    videoRef.current.muted = nextMuted;
+    updateMutedState(nextMuted);
+
+    try {
+      window.localStorage.setItem(
+        SOUND_PREFERENCE_KEY,
+        nextMuted ? "off" : "on"
+      );
+    } catch {
+      // Ignore storage errors in private browsing or restricted environments.
+    }
+
+    if (!nextMuted) {
+      void videoRef.current
+        .play()
+        .then(() => setSoundBlocked(false))
+        .catch(() => {
+          setSoundBlocked(true);
+          if (!videoRef.current) return;
+          videoRef.current.muted = true;
+          updateMutedState(true);
+        });
+    }
+  }, [updateMutedState]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     const x = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -82,6 +118,99 @@ export default function HeroSection() {
     };
   }, [handleMouseMove]);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    let shouldAttemptGestureUnmute = true;
+
+    let savedPreference: string | null = null;
+    try {
+      savedPreference = window.localStorage.getItem(SOUND_PREFERENCE_KEY);
+    } catch {
+      savedPreference = null;
+    }
+
+    const tryPlayWithSound = async () => {
+      video.muted = false;
+      try {
+        await video.play();
+        updateMutedState(false);
+        setSoundBlocked(false);
+      } catch {
+        // Browser blocked autoplay with sound; continue muted and wait for a user gesture.
+        video.muted = true;
+        updateMutedState(true);
+        setSoundBlocked(true);
+        try {
+          await video.play();
+        } catch {
+          // Ignore; fallback gradient stays visible if playback fails entirely.
+        }
+      }
+    };
+
+    const enableSoundOnGesture = () => {
+      const activeVideo = videoRef.current;
+      if (!activeVideo) return;
+
+      activeVideo.muted = false;
+      void activeVideo
+        .play()
+        .then(() => {
+          updateMutedState(false);
+          setSoundBlocked(false);
+          try {
+            window.localStorage.setItem(SOUND_PREFERENCE_KEY, "on");
+          } catch {
+            // Ignore storage errors in private browsing or restricted environments.
+          }
+        })
+        .catch(() => {
+          activeVideo.muted = true;
+          updateMutedState(true);
+          setSoundBlocked(true);
+        });
+    };
+
+    if (savedPreference === "off") {
+      shouldAttemptGestureUnmute = false;
+      video.muted = true;
+      updateMutedState(true);
+      setSoundBlocked(false);
+      void video.play().catch(() => {
+        // Ignore; fallback gradient stays visible if playback fails entirely.
+      });
+    } else {
+      void tryPlayWithSound();
+    }
+
+    if (shouldAttemptGestureUnmute) {
+      window.addEventListener("pointerdown", enableSoundOnGesture, {
+        once: true,
+      });
+      window.addEventListener("keydown", enableSoundOnGesture, { once: true });
+      window.addEventListener("touchstart", enableSoundOnGesture, {
+        once: true,
+        passive: true,
+      });
+      window.addEventListener("wheel", enableSoundOnGesture, {
+        once: true,
+        passive: true,
+      });
+    }
+
+    window.addEventListener(SOUND_TOGGLE_EVENT, toggleMute as EventListener);
+
+    return () => {
+      window.removeEventListener("pointerdown", enableSoundOnGesture);
+      window.removeEventListener("keydown", enableSoundOnGesture);
+      window.removeEventListener("touchstart", enableSoundOnGesture);
+      window.removeEventListener("wheel", enableSoundOnGesture);
+      window.removeEventListener(SOUND_TOGGLE_EVENT, toggleMute as EventListener);
+    };
+  }, [toggleMute, updateMutedState]);
+
   return (
     <section
       id="hero"
@@ -92,7 +221,7 @@ export default function HeroSection() {
         ref={videoRef}
         className="absolute inset-0 w-full h-full object-cover z-0"
         autoPlay
-        muted
+        muted={muted}
         loop
         playsInline
         preload="auto"
@@ -195,31 +324,6 @@ export default function HeroSection() {
         </div>
       </div>
       </div>
-
-      {/* Mute / unmute toggle */}
-      <button
-        onClick={toggleMute}
-        aria-label={muted ? "Unmute video" : "Mute video"}
-        className="absolute bottom-8 right-6 md:right-10 z-30 flex items-center gap-2 px-3 py-2 rounded-full border border-[rgba(232,146,60,0.3)] bg-[rgba(13,13,13,0.5)] text-[#9A8F83] hover:text-[#E8923C] hover:border-[#E8923C] transition-all duration-200 backdrop-blur-sm"
-      >
-        {muted ? (
-          /* Speaker muted */
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-              d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-          </svg>
-        ) : (
-          /* Speaker on */
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-              d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0l-4.243-4.243M12 18l4.243-4.243M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-          </svg>
-        )}
-        <span className="text-[10px] font-mono tracking-widest uppercase">
-          {muted ? "Sound Off" : "Sound On"}
-        </span>
-      </button>
 
       {/* Scroll indicator */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2">
