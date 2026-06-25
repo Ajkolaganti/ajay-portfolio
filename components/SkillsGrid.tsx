@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, MouseEvent } from "react";
+import { useEffect, useRef, useState, MouseEvent } from "react";
+import dynamic from "next/dynamic";
+import { motion } from "framer-motion";
+
+const ApiConstellationScene = dynamic(
+  () => import("@/components/scenes/ApiConstellationScene"),
+  { ssr: false, loading: () => null }
+);
 
 const skillGroups = [
   {
@@ -59,7 +66,23 @@ const skillGroups = [
   },
 ];
 
-function TiltCard({ group, index }: { group: typeof skillGroups[0]; index: number }) {
+interface TiltCardProps {
+  group: (typeof skillGroups)[0];
+  index: number;
+  onSkillEnter: (skill: string) => void;
+  onSkillLeave: () => void;
+  onCategoryEnter: (cat: string) => void;
+  onCategoryLeave: () => void;
+}
+
+function TiltCard({
+  group,
+  index,
+  onSkillEnter,
+  onSkillLeave,
+  onCategoryEnter,
+  onCategoryLeave,
+}: TiltCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
 
@@ -81,9 +104,9 @@ function TiltCard({ group, index }: { group: typeof skillGroups[0]; index: numbe
     if (!cardRef.current || !glowRef.current) return;
     cardRef.current.style.transform = "perspective(600px) rotateX(0) rotateY(0) translateZ(0)";
     glowRef.current.style.background = "transparent";
+    onCategoryLeave();
   };
 
-  // Intersection observer for entry animation
   const wrapRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -115,23 +138,28 @@ function TiltCard({ group, index }: { group: typeof skillGroups[0]; index: numbe
         className="relative glass rounded-2xl p-6 cursor-default h-full overflow-hidden transition-all duration-200 hover:border-[rgba(232,146,60,0.25)]"
         style={{ transformStyle: "preserve-3d" }}
       >
-        {/* Glow overlay */}
         <div ref={glowRef} className="absolute inset-0 rounded-2xl pointer-events-none transition-all duration-150" />
 
-        {/* Category header */}
-        <div className="flex items-center gap-2.5 mb-5">
+        {/* Category header — hover highlights entire cluster in 3D */}
+        <div
+          className="flex items-center gap-2.5 mb-5 cursor-default"
+          onMouseEnter={() => onCategoryEnter(group.category)}
+          onMouseLeave={onCategoryLeave}
+        >
           <div className="w-7 h-7 rounded-lg bg-[rgba(232,146,60,0.12)] text-[#E8923C] flex items-center justify-center">
             {group.icon}
           </div>
           <span className="text-[#F5F0EB] font-semibold text-sm tracking-tight">{group.category}</span>
         </div>
 
-        {/* Skills */}
+        {/* Skill badges — hover highlights matching 3D node */}
         <div className="flex flex-wrap gap-2">
           {group.skills.map((skill) => (
             <span
               key={skill}
-              className="px-2.5 py-1.5 rounded-lg bg-[rgba(232,146,60,0.07)] border border-[rgba(232,146,60,0.12)] text-[#9A8F83] text-xs font-mono hover:text-[#E8923C] hover:border-[rgba(232,146,60,0.3)] transition-colors duration-200"
+              className="px-2.5 py-1.5 rounded-lg bg-[rgba(232,146,60,0.07)] border border-[rgba(232,146,60,0.12)] text-[#9A8F83] text-xs font-mono hover:text-[#E8923C] hover:border-[rgba(232,146,60,0.3)] transition-colors duration-200 cursor-default"
+              onMouseEnter={() => onSkillEnter(skill)}
+              onMouseLeave={onSkillLeave}
             >
               {skill}
             </span>
@@ -145,6 +173,8 @@ function TiltCard({ group, index }: { group: typeof skillGroups[0]; index: numbe
 export default function SkillsGrid() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
+  const [activeSkill, setActiveSkill] = useState("");
+  const [activeCategory, setActiveCategory] = useState("");
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -164,12 +194,26 @@ export default function SkillsGrid() {
 
   return (
     <section id="skills" ref={sectionRef} className="relative py-28 md:py-36 ambient-bg">
+      {/* Top/bottom border lines */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[rgba(232,146,60,0.15)] to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[rgba(232,146,60,0.15)] to-transparent" />
 
-      {/* Left glow */}
+      {/* Left ambient glow */}
       <div className="absolute left-0 top-1/2 w-80 h-80 bg-[radial-gradient(ellipse,rgba(232,146,60,0.05)_0%,transparent_70%)] pointer-events-none" />
 
-      <div className="max-w-6xl mx-auto px-6 md:px-12">
+      {/* 3D constellation background — fades in on scroll, pointer-events disabled */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        transition={{ duration: 1.5, ease: "easeOut" }}
+        viewport={{ once: true, margin: "-10%" }}
+      >
+        <ApiConstellationScene activeSkill={activeSkill} activeCategory={activeCategory} />
+      </motion.div>
+
+      {/* Content — sits above the canvas */}
+      <div className="relative z-10 max-w-6xl mx-auto px-6 md:px-12">
         <div ref={headerRef} className="mb-14">
           <p className="reveal-item text-[#E8923C] text-xs font-mono uppercase tracking-[0.25em] mb-3">
             Stack
@@ -178,18 +222,24 @@ export default function SkillsGrid() {
             Skills &amp; technologies
           </h2>
           <p className="reveal-item text-[#9A8F83] text-base mt-3 max-w-xl leading-relaxed">
-            Hover cards for depth. Grouped by domain.
+            Hover a badge to illuminate its node. Hover a category to light up the cluster.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {skillGroups.map((group, i) => (
-            <TiltCard key={group.category} group={group} index={i} />
+            <TiltCard
+              key={group.category}
+              group={group}
+              index={i}
+              onSkillEnter={setActiveSkill}
+              onSkillLeave={() => setActiveSkill("")}
+              onCategoryEnter={setActiveCategory}
+              onCategoryLeave={() => setActiveCategory("")}
+            />
           ))}
         </div>
       </div>
-
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[rgba(232,146,60,0.15)] to-transparent" />
     </section>
   );
 }
