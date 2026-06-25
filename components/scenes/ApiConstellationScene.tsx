@@ -20,7 +20,7 @@ interface ClusterDef {
 const CLUSTERS: ClusterDef[] = [
   {
     id: "Languages",
-    center: [-5.5, 2.5, 0.5],
+    center: [-3.2, 2.2, 0.3],
     skills: [
       { name: "Java 8/11/17", off: [-0.65, 0.45, -0.3] },
       { name: "SQL (T-SQL)", off: [0.55, 0.35, 0.5] },
@@ -29,7 +29,7 @@ const CLUSTERS: ClusterDef[] = [
   },
   {
     id: "Backend",
-    center: [3.8, 2.2, -0.8],
+    center: [2.8, 2.0, -0.5],
     skills: [
       { name: "Spring Boot", off: [-0.7, 0.6, -0.2] },
       { name: "Hibernate/JPA", off: [0.7, 0.5, 0.3] },
@@ -41,7 +41,7 @@ const CLUSTERS: ClusterDef[] = [
   },
   {
     id: "Cloud / Infra",
-    center: [0.2, 0.0, 3.5],
+    center: [0.3, 0.0, 2.5],
     skills: [
       { name: "AWS (EC2, S3, RDS, SQS)", off: [-0.7, 0.5, -0.4] },
       { name: "Docker", off: [0.65, 0.6, 0.4] },
@@ -51,7 +51,7 @@ const CLUSTERS: ClusterDef[] = [
   },
   {
     id: "Database",
-    center: [4.5, -2.8, -0.5],
+    center: [3.2, -2.2, -0.3],
     skills: [
       { name: "SQL Server", off: [-0.6, 0.5, -0.3] },
       { name: "PostgreSQL", off: [0.6, 0.45, 0.5] },
@@ -63,7 +63,7 @@ const CLUSTERS: ClusterDef[] = [
   },
   {
     id: "Security",
-    center: [-4.8, -2.5, 0.5],
+    center: [-3.0, -2.2, 0.5],
     skills: [
       { name: "IAM", off: [-0.5, 0.6, -0.4] },
       { name: "RBAC", off: [0.6, 0.5, 0.3] },
@@ -75,7 +75,7 @@ const CLUSTERS: ClusterDef[] = [
   },
   {
     id: "Frontend",
-    center: [-0.2, -4.2, -1.0],
+    center: [-0.2, -3.8, -0.8],
     skills: [
       { name: "React", off: [-0.6, 0.4, -0.35] },
       { name: "Next.js", off: [0.55, 0.45, 0.4] },
@@ -188,8 +188,8 @@ function ConstellationGraph({ activeSkill, activeCategory, reducedMotion }: Grap
       const isSkill = !!activeSkill && activeSkill === n.skill;
       const isCat = !!activeCategory && activeCategory === n.clusterId;
 
-      const tgtScale = isSkill ? 2.5 : isCat ? 1.7 : 1.0;
-      const tgtEmi = isSkill ? 1.3 : isCat ? 0.75 : 0.25;
+      const tgtScale = isSkill ? 3.0 : isCat ? 2.2 : 1.0;
+      const tgtEmi = isSkill ? 2.2 : isCat ? 1.4 : 0.6;
 
       mesh.scale.setScalar(THREE.MathUtils.lerp(mesh.scale.x, tgtScale, 0.1));
 
@@ -206,7 +206,7 @@ function ConstellationGraph({ activeSkill, activeCategory, reducedMotion }: Grap
       if (!ls) return;
       const mat = ls.material as THREE.LineBasicMaterial;
       const active = !!activeCategory && activeCategory === CLUSTERS[ci]?.id;
-      mat.opacity = THREE.MathUtils.lerp(mat.opacity, active ? 0.55 : 0.13, 0.08);
+      mat.opacity = THREE.MathUtils.lerp(mat.opacity, active ? 0.7 : 0.28, 0.08);
     });
   });
 
@@ -224,12 +224,12 @@ function ConstellationGraph({ activeSkill, activeCategory, reducedMotion }: Grap
             nodeRefs.current[i] = el;
           }}
         >
-          <sphereGeometry args={[0.055, 8, 8]} />
+          <sphereGeometry args={[0.1, 10, 10]} />
           <meshStandardMaterial
             color="#E8923C"
             emissive="#E8923C"
-            emissiveIntensity={0.25}
-            roughness={0.25}
+            emissiveIntensity={0.6}
+            roughness={0.2}
             metalness={0.4}
           />
         </mesh>
@@ -247,7 +247,7 @@ function ConstellationGraph({ activeSkill, activeCategory, reducedMotion }: Grap
           <lineBasicMaterial
             color="#E8923C"
             transparent
-            opacity={0.13}
+            opacity={0.28}
             depthWrite={false}
           />
         </lineSegments>
@@ -259,7 +259,7 @@ function ConstellationGraph({ activeSkill, activeCategory, reducedMotion }: Grap
         <lineBasicMaterial
           color="#A8C5E8"
           transparent
-          opacity={0.09}
+          opacity={0.22}
           depthWrite={false}
         />
       </lineSegments>
@@ -284,7 +284,7 @@ export default function ApiConstellationScene({
 
   return (
     <Canvas
-      camera={{ position: [0, 0, 13], fov: 62 }}
+      camera={{ position: [0, 0, 9], fov: 70 }}
       style={{ background: "transparent", width: "100%", height: "100%" }}
       gl={{ alpha: true, antialias: true }}
       dpr={[1, 1.5]}
